@@ -1,4 +1,13 @@
-import { Button, ButtonGroup, Container, Typography } from "@mui/material";
+import {
+  Alert,
+  AlertTitle,
+  Button,
+  ButtonGroup,
+  Container,
+  List,
+  ListItem,
+  Typography,
+} from "@mui/material";
 import {
   useLazyGet400ErrorQuery,
   useLazyGet401ErrorQuery,
@@ -6,8 +15,11 @@ import {
   useLazyGet500ErrorQuery,
   useLazyGetValidationErrorQuery,
 } from "./errorApi";
+import { useState } from "react";
 
 export default function AboutPage() {
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+
   const [trigger400Error] = useLazyGet400ErrorQuery();
   const [trigger401Error] = useLazyGet401ErrorQuery();
   const [trigger404Error] = useLazyGet404ErrorQuery();
@@ -17,9 +29,17 @@ export default function AboutPage() {
   const getValidationError = async () => {
     try {
       await triggerValidationError().unwrap();
-    } catch (error: any) {
-      const errorArray = error.message.split(", ");
-      console.log(errorArray);
+    } catch (error: unknown) {
+      //all of this nonsense is to get rid of the typescript warnings, not massively needed
+      if (
+        error &&
+        typeof error === "object" &&
+        "message" in error &&
+        typeof (error as { message: unknown }).message === "string"
+      ) {
+        const errorArray = (error as { message: string }).message.split(", ");
+        setValidationErrors(errorArray);
+      }
     }
   };
 
@@ -57,6 +77,16 @@ export default function AboutPage() {
           Test validation Error
         </Button>
       </ButtonGroup>
+      {validationErrors.length > 0 && (
+        <Alert severity="error">
+          <AlertTitle>Validation errors</AlertTitle>
+          <List>
+            {validationErrors.map((err) => (
+              <ListItem key={err}>{err}</ListItem>
+            ))}
+          </List>
+        </Alert>
+      )}
     </Container>
   );
 }
